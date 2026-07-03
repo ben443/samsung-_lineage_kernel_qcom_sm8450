@@ -3,7 +3,7 @@ name: Build SM8450 Kernel
 on:
   workflow_dispatch:
     inputs:
-        defconfig: 'gki_defconfig'
+        defconfig: gki_defconfig
         description: 'Target device defconfig'
         required: false
         type: 'string'
