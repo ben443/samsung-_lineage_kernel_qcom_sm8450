@@ -1,0 +1,90 @@
+name: Build SM8450 Kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      defconfig: 'gki_defconfig'
+        description: 'Target device defconfig'
+        required: true
+        default: 'gki_defconfig'
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - '**.md'
+
+# Prevents wasted resources by cancelling previous runs on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Enforces the principle of least privilege
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: Compile Kernel
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 1
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3
+
+      - name: Setup ccache
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Fetch Toolchain (Proton Clang)
+        run: |
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git ~/clang
+
+      - name: Compile Kernel
+        env:
+          DEFCONFIG: ${{ inputs.defconfig || 'vendor/gts8wifi_defconfig' }}
+        run: |
+          export PATH="$HOME/clang/bin:$PATH"
+          export USE_CCACHE=1
+          export CCACHE_EXEC=/usr/bin/ccache
+          ccache -M 50G
+          
+          # Initialize environment and defconfig
+          make O=out ARCH=arm64 $DEFCONFIG
+          
+          # Compile
+          make -j$(nproc --all) \
+            O=out \
+            ARCH=arm64 \
+            CC=clang \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+
+      - name: Package AnyKernel3 (TWRP Flashable)
+        run: |
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git AnyKernel3
+          cp out/arch/arm64/boot/Image AnyKernel3/
+          cp out/arch/arm64/boot/dtbo.img AnyKernel3/ || true
+          find out/arch/arm64/boot/dts/vendor -name '*.dtb' -exec cp {} AnyKernel3/ \; || true
+          
+          cd AnyKernel3
+          # Clean up unneeded files and package the zip
+          rm -rf .git README.md
+          zip -r9 ../NetHunter-Kernel-SM-X700.zip *
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: NetHunter-Kernel-SM-X700
+          path: NetHunter-Kernel-SM-X700.zip
+          retenti
+          on-days: 7
