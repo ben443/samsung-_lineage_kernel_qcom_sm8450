@@ -87,5 +87,4 @@ jobs:
         with:
           name: NetHunter-Kernel-SM-X700
           path: NetHunter-Kernel-SM-X700.zip
-          retenti
-          on-days: 7
+          retention-days: 7
