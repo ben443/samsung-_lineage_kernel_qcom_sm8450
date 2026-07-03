@@ -3,10 +3,10 @@ name: Build SM8450 Kernel
 on:
   workflow_dispatch:
     inputs:
-        defconfig: gki_defconfig
+      defconfig:
         description: 'Target device defconfig'
         required: false
-        type: 'string'
+        type: string
         default: 'gki_defconfig'
   push:
     branches: [ "lineage-20" ]
@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses-dev libreadline-dev libssl-dev lzop python3 python3-distutils rsync unzip zlib1g-dev
 
       - name: Setup ccache
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -52,7 +52,8 @@ jobs:
 
       - name: Compile Kernel
         env:
-          DEFCONFIG: ${{ inputs.defconfig || 'vendor/gts8wifi_defconfig' }}
+          # Use the workflow input when triggered by workflow_dispatch, otherwise fall back to the fallback defconfig
+          DEFCONFIG: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.defconfig) || 'vendor/gts8wifi_defconfig' }}
         run: |
           export PATH="$HOME/clang/bin:$PATH"
           export USE_CCACHE=1
