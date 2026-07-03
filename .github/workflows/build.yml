@@ -7,6 +7,7 @@ on:
       defconfig: 'gki_defconfig'
         description: 'Target device defconfig'
         required: false
+        type: 'string'
         default: 'gki_defconfig'
   push:
     branches: [ "lineage-20" ]
