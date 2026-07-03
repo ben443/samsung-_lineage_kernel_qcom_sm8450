@@ -3,12 +3,13 @@ name: Build SM8450 Kernel
 on:
   workflow_dispatch:
     inputs:
+     
       defconfig: 'gki_defconfig'
         description: 'Target device defconfig'
-        required: true
+        required: false
         default: 'gki_defconfig'
   push:
-    branches: [ "main" ]
+    branches: [ "lineage-20" ]
     paths-ignore:
       - '**.md'
 
